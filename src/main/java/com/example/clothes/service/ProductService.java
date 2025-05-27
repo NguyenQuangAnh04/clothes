@@ -105,15 +105,15 @@ public class ProductService implements IProductService {
             newProduct.setSlug(slug);
             newProduct.setCreate_at(LocalDateTime.now());
             productRepository.save(newProduct);
-//            for (InventoryDTOList itemDTO : productDTO.getDtoList()) {
-//                Inventory inventory = new Inventory();
-//                inventory.setProduct(newProduct);
-//                inventory.setQuantity(itemDTO.getQuantity());
-//                inventory.setColor(itemDTO.getColor());
-//                inventory.setSize(itemDTO.getSize());
-//                inventory.setLast_updated(LocalDateTime.now());
-//                inventoryRepository.save(inventory);
-//            }
+            for (InventoryDTOList itemDTO : productDTO.getDtoList()) {
+                Inventory inventory = new Inventory();
+                inventory.setProduct(newProduct);
+                inventory.setQuantity(itemDTO.getQuantity());
+                inventory.setColor(itemDTO.getColor());
+                inventory.setSize(itemDTO.getSize());
+                inventory.setLast_updated(LocalDateTime.now());
+                inventoryRepository.save(inventory);
+            }
         }
         return productDTO;
     }
