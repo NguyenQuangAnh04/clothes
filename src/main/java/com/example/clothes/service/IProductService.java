@@ -5,6 +5,8 @@ import com.example.clothes.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 
 public interface IProductService {
@@ -13,4 +15,5 @@ public interface IProductService {
     List<ProductDTO> getSuggestions(String keyword);
     ProductDTO findBySlug(String slug);
     void delete(Long id);
+
 }

@@ -5,14 +5,21 @@ import com.example.clothes.dto.OrderItemDTO;
 import com.example.clothes.enums.OrderStatus;
 import com.example.clothes.model.*;
 import com.example.clothes.repository.*;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfWriter;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -159,7 +166,7 @@ public class OrderService implements IOrderService {
             OrderItemDTO orderItemDTO = new OrderItemDTO();
             orderItemDTO.setId(item.getOrderItemId());
             Inventory inventory = inventoryRepository.findByProductAndColorAndSize(item.getProduct(), item.getColor(), item.getSize())
-                    .orElseThrow(() ->  new EntityNotFoundException("Không tìm thấy product"));
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy product"));
             orderItemDTO.setImage_url(inventory.getImage_url());
             orderItemDTO.setProductName(item.getProduct().getProductName());
             orderItemDTO.setQuantity(item.getQuantity());
@@ -178,9 +185,52 @@ public class OrderService implements IOrderService {
     public void cancelled(Long userId, Long orderId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tài khoản"));
         Optional<Order> order = orderRepository.findByOrderIdAndUser(orderId, user);
-        if(!order.isPresent()) throw new EntityNotFoundException("Không tìm thấy đơn hàng");
+        if (!order.isPresent()) throw new EntityNotFoundException("Không tìm thấy đơn hàng");
         order.get().setOrderStatus(OrderStatus.CANCELLED);
         order.get().setOrderDate(LocalDateTime.now());
         orderRepository.save(order.get());
     }
+
+    public ByteArrayInputStream exportInvoicePdf(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        Document document = new Document();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter.getInstance(document, out);
+            document.open();
+            String FONT = "src/main/resources/fonts/NotoSans-VariableFont_wdth,wght.ttf";
+            BaseFont baseFont = BaseFont.createFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Font font = new Font(baseFont, 12, Font.NORMAL);
+            Font fontTitle = new Font(baseFont, 16, Font.BOLD);
+            Paragraph title = new Paragraph("Hóa đơn #" + order.getOrderId(), fontTitle);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20f);
+            document.add(title);
+            document.add(new Paragraph("Khách hàng: " + order.getCustomerName(), font));
+            document.add(new Paragraph("Ngày đặt hàng: " + order.getOrderDate(), font));
+            document.add(Chunk.NEWLINE);
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = productRepository.findById(item.getProduct().getId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+                document.add(new Paragraph("- " + product.getProductName() + " - Giá: " + product.getPrice(), font));
+                document.add(Chunk.NEWLINE);
+                document.add(new Paragraph("-Màu:" + item.getColor() + ",Size:"+ item.getSize() + ", Số lượng:" + item.getQuantity(), font));
+                document.add(Chunk.NEWLINE);
+            }
+            Paragraph total = new Paragraph("Tổng tiền: " + order.getTotalAmount() + "VNĐ", fontTitle);
+            total.setSpacingBefore(15f);
+            document.add(total);
+        } catch (DocumentException | IOException ex) {
+            throw new RuntimeException("Lỗi khi tạo PDF: " + ex.getMessage(), ex);
+        } finally {
+            if (document.isOpen()) {
+                document.close();
+            }
+        }
+        return new ByteArrayInputStream(out.toByteArray());
+    }
+
 }

@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -165,6 +164,8 @@ public class ProductService implements IProductService {
         Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy id sản phẩm"));
         productRepository.delete(product);
     }
+
+
 
     public String removeAccent(String s) {
         // B1: Chuẩn hóa chuỗi sang dạng NFD (mỗi ký tự tách riêng dấu thanh)
