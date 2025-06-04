@@ -40,7 +40,8 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(
                         request ->
-                                request.requestMatchers("/api/login", "/api/register").permitAll()
+                                request.requestMatchers("/api/login", "/api/register/**", "/api/register/*", "/api/forgot-password/**").permitAll()
+                                        .requestMatchers(HttpMethod.GET,"/api/admin/revenue/monthly/*").hasAnyRole("ADMIN")
                                         .requestMatchers(HttpMethod.PUT,"/api/*").hasAnyRole("ADMIN","USER")
                                         .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/product/*").hasAnyRole("ADMIN", "USER")
@@ -48,6 +49,7 @@ public class WebSecurityConfig {
                                         .requestMatchers(HttpMethod.POST, "/api/upload/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.POST, "/api/order/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.GET, "/api/order/**").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.GET, "/api/qr/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.PUT, "/api/cart/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.DELETE, "/api/cart/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.POST, "/api/cart/*").permitAll()

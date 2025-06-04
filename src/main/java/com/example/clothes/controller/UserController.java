@@ -1,5 +1,6 @@
 package com.example.clothes.controller;
 
+import com.example.clothes.dto.ChangePasswordDTO;
 import com.example.clothes.dto.UserLoginDTO;
 import com.example.clothes.dto.UserRegisterDTO;
 import com.example.clothes.model.User;
@@ -19,13 +20,30 @@ public class UserController {
         return ResponseEntity.ok(userService.login(dto.getUserName(), dto.getPassword()));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody() UserRegisterDTO dto) {
-        return ResponseEntity.ok(userService.register(dto));
+    @PostMapping("/register/verify")
+    public ResponseEntity<User> register(@RequestParam String email, @RequestParam String otp) {
+        return ResponseEntity.ok(userService.verifyOtpAndRegister(email, otp));
+    }
+    @PostMapping("/register/send-otp")
+    public ResponseEntity<?> sendOtpRegister(@RequestBody() UserRegisterDTO dto) {
+        userService.requestRegister(dto);
+        return ResponseEntity.ok("OTP đã được gửi về email. Vui lòng kiểm tra email để xác thực.");
     }
 
     @PutMapping("/update")
-    public ResponseEntity<User> update(@RequestBody() UserRegisterDTO dto){
+    public ResponseEntity<User> update(@RequestBody() UserRegisterDTO dto) {
         return ResponseEntity.ok(userService.updateUser(dto));
+    }
+
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<?> forgotPassword(@RequestParam(name = "email") String email) {
+        userService.sendForgotPasswordOTP(email);
+        return ResponseEntity.ok("Đã gửi OTP đến email của bạn.");
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody() ChangePasswordDTO changePasswordDTO) {
+        userService.resetPassword(changePasswordDTO.getEmail(), changePasswordDTO);
+        return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
     }
 }

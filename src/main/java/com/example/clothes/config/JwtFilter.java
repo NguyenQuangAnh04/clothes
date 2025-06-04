@@ -31,13 +31,9 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            if (isByPassToken(request)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                filterChain.doFilter(request, response);
                 return;
             }
             String token = authHeader.substring(7);
@@ -62,20 +58,23 @@ public class JwtFilter extends OncePerRequestFilter {
         }
     }
 
-    private boolean isByPassToken(HttpServletRequest request) {
-        final List<Pair<String, String>> byPassTokens = List.of(
-                Pair.of("/api/product", "GET"),
-                Pair.of("/api/product/search", "GET"),
-                Pair.of("/api/login", "POST"),
-                Pair.of("/api/product/suggestions", "GET"),
-                Pair.of("/api/register", "POST"),
-                Pair.of("/api/category", "GET")
-        );
-        for (Pair<String, String> bypassToken : byPassTokens) {
-            if (request.getServletPath().startsWith(bypassToken.getFirst()) && request.getMethod().equals(bypassToken.getSecond())) {
-                return true;
-            }
-        }
-        return false;
-    }
+//    private boolean isByPassToken(HttpServletRequest request) {
+//        final List<Pair<String, String>> byPassTokens = List.of(
+//                Pair.of("/api/product", "GET"),
+//                Pair.of("/api/product/search", "GET"),
+//                Pair.of("/api/login", "POST"),
+//                Pair.of("/api/forgot-password/send-otp", "POST"),
+//                Pair.of("/api/forgot-password/reset", "POST"),
+//
+//                Pair.of("/api/product/suggestions", "GET"),
+//                Pair.of("/api/register", "POST"),
+//                Pair.of("/api/category", "GET")
+//        );
+//        for (Pair<String, String> bypassToken : byPassTokens) {
+//            if (request.getServletPath().startsWith(bypassToken.getFirst()) && request.getMethod().equals(bypassToken.getSecond())) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 }
