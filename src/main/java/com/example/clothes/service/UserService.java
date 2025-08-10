@@ -33,9 +33,10 @@ public class UserService implements IUserService {
     @Autowired
     private OTPService otpService;
     private final Map<String, UserRegisterDTO> tempRegisterCache = new ConcurrentHashMap<>(); // Map này sẽ an toàn khi có nhiều luồng truy cập đồng thời
+
     @Override
-    public String login(String username, String password) {
-        Optional<User> user = userRepository.findByUserNameWithRoles(username);
+    public String login(String phone, String password) {
+        Optional<User> user = userRepository.findByPhone(phone);
         if (!user.isPresent()) throw new RuntimeException("Kiểm tra lại tài khoản hoặc mật khẩu!");
         if (!bCryptPasswordEncoder.matches(password, user.get().getPassword()))
             throw new RuntimeException("Kiểm tra lại tài khoản hoặc mật khẩu!");
@@ -44,8 +45,6 @@ public class UserService implements IUserService {
 
     @Override
     public void requestRegister(UserRegisterDTO userRegisterDTO) {
-        if (userRepository.findByUserName(userRegisterDTO.getUserName()).isPresent())
-            throw new RuntimeException("Tài khoản đã tồn tại");
         if (userRepository.findByEmail(userRegisterDTO.getEmail()).isPresent())
             throw new RuntimeException("Email đã tồn tại");
         if (userRepository.findByPhone(userRegisterDTO.getPhone()).isPresent())
@@ -74,8 +73,9 @@ public class UserService implements IUserService {
         String hashPassword = bCryptPasswordEncoder.encode(userRegisterDTO.getPassword());
         User newUser = new User();
         Role role = roleRepository.findByRoleName("USER").orElseThrow(() -> new RuntimeException("Không tìm thấy role"));
-        newUser.setUserName(userRegisterDTO.getUserName());
         newUser.setPassword(hashPassword);
+        String localPart = email.substring(0, email.indexOf("@"));
+        newUser.setUsername(localPart);
         newUser.setFullName(userRegisterDTO.getFullName());
         newUser.setPhone(userRegisterDTO.getPhone());
         newUser.setEmail(userRegisterDTO.getEmail());

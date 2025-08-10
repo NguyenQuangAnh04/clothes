@@ -10,7 +10,9 @@ import java.util.List;
 @Data
 public class OrderDTO {
     private Long orderId;
-    private String customerName;
+    private String firstName;
+    private String lastName;
+    private String fullName;
     private String address;
     private String email;
     private String phone;
@@ -18,6 +20,7 @@ public class OrderDTO {
     private PaymentMethod paymentMethod;
     private Double subtotal;
     private String status;
+    private Long cartId;
     private LocalDateTime create_at;
     private List<OrderItemDTO> orderItemDTOS;
 }

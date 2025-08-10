@@ -15,13 +15,12 @@ public class CartController {
     private CartService cartService;
     @PostMapping("/add")
     public ResponseEntity<CartDTO> createCart(@RequestBody() CartDTO cartDTO, HttpServletRequest request){
-        Long userId = (Long) request.getAttribute("userId");
-        return ResponseEntity.ok(cartService.createCart(cartDTO, userId));
+        return ResponseEntity.ok(cartService.createCart(cartDTO));
     }
+
     @GetMapping("/cart-detail")
     public ResponseEntity<CartDTO> findByUser(HttpServletRequest request){
-        Long userId = (Long) request.getAttribute("userId");
-        return ResponseEntity.ok(cartService.findByUser(userId));
+        return ResponseEntity.ok(cartService.findByUser());
     }
 
     @PutMapping("/update-quantity")
@@ -31,6 +30,17 @@ public class CartController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteCartItem(@PathVariable(name = "id") Long id){
         cartService.deleteCartItem(id);
+        return ResponseEntity.ok().build();
+    }
+    @PutMapping("/cart-items/{id}/increase")
+    public ResponseEntity<Void> increaseQuantity(@PathVariable(name = "id") Long id){
+        cartService.increasedQuantity(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/cart-items/{id}/decrease")
+    public ResponseEntity<Void> decreasedQuantity(@PathVariable(name = "id") Long id){
+        cartService.decreasedQuantity(id);
         return ResponseEntity.ok().build();
     }
 }

@@ -26,5 +26,5 @@ public class CartItem {
 
     private Integer quantity;
     private Double price;
-    private Double subtotal;
+    private BigDecimal subtotal;
 }

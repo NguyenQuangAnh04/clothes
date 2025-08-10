@@ -1,17 +1,14 @@
 package com.example.clothes.dto;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class UserLoginDTO {
-
-    private String userName;
-
+    @NotBlank(message = "Số điện thoại không được để trống")
+    private String phone;
+    @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
-
 
 
 }

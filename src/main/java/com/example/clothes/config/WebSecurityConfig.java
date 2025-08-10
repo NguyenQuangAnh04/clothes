@@ -40,17 +40,19 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(
                         request ->
-                                request.requestMatchers("/api/login", "/api/register/**", "/api/register/*", "/api/forgot-password/**").permitAll()
+                                request.requestMatchers("/api/login", "/api/register/**", "/api/register/*", "/api/register/verify","/api/role","/api/product", "/api/forgot-password/**").permitAll()
                                         .requestMatchers(HttpMethod.GET,"/api/admin/revenue/monthly/*").hasAnyRole("ADMIN")
                                         .requestMatchers(HttpMethod.PUT,"/api/*").hasAnyRole("ADMIN","USER")
-                                        .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
-                                        .requestMatchers(HttpMethod.POST, "/api/product/*").hasAnyRole("ADMIN", "USER")
-                                        .requestMatchers(HttpMethod.DELETE, "/api/product/*").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.GET, "/api/product/*", "/api/brand").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/product/*", "/api/brand").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.PUT, "/api/product/*", "/api/brand/*").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.DELETE, "/api/product/*", "/api/brand/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.POST, "/api/upload/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.POST, "/api/order/*").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.DELETE, "/api/order/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.GET, "/api/order/**").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.GET, "/api/qr/*").hasAnyRole("ADMIN", "USER")
-                                        .requestMatchers(HttpMethod.PUT, "/api/cart/*").hasAnyRole("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.PUT, "/api/cart/*", "/api/cart/cart-items").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.DELETE, "/api/cart/*").hasAnyRole("ADMIN", "USER")
                                         .requestMatchers(HttpMethod.POST, "/api/cart/*").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/upload/*").hasAnyRole("ADMIN", "USER")
@@ -59,7 +61,6 @@ public class WebSecurityConfig {
                                         .requestMatchers(HttpMethod.GET, "/api/category").permitAll()
                                         .requestMatchers(HttpMethod.DELETE, "/api/category/**").hasAnyRole("ADMIN")
                                         .requestMatchers(HttpMethod.PUT, "/api/category/*").hasAnyRole("ADMIN")
-
                                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -67,29 +68,29 @@ public class WebSecurityConfig {
     }
 
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
-        daoAuthenticationProvider.setPasswordEncoder(bCryptPasswordEncoder());
-        return daoAuthenticationProvider;
-    }
+//    @Bean
+//    public AuthenticationProvider authenticationProvider() {
+//        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+//        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
+//        daoAuthenticationProvider.setPasswordEncoder(bCryptPasswordEncoder());
+//        return daoAuthenticationProvider;
+//    }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+//    @Bean
+//    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+//        return config.getAuthenticationManager();
+//    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();

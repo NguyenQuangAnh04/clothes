@@ -20,13 +20,13 @@ public class Categories {
     @Column()
     private String categoryName;
 
-    @Column()
-    private String description;
+
 
     @Column()
     private LocalDateTime created_at;
-
+    @Column()
+    private LocalDateTime updated_at;
     @JsonIgnore
-    @OneToMany(mappedBy = "categories", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "categories", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
 }

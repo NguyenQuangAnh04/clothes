@@ -17,13 +17,12 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
-    @Column(name = "user_name")
-    private String userName;
     private String fullName;
     private String password;
     private String phone;
     private String email;
-
+    @Column(name = "user_name")
+    private String username;
     private LocalDateTime created_at;
     @ManyToOne()
     @JoinColumn(name = "role_id")
@@ -42,27 +41,26 @@ public class User implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
-        return userName;
-    }
-
-    @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return true;
     }
 }

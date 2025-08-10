@@ -3,6 +3,7 @@ package com.example.clothes.service;
 import com.example.clothes.dto.OrderDTO;
 import com.example.clothes.dto.OrderItemDTO;
 import com.example.clothes.enums.OrderStatus;
+import com.example.clothes.mapper.OrderMapperDTO;
 import com.example.clothes.model.*;
 import com.example.clothes.repository.*;
 import com.lowagie.text.*;
@@ -10,19 +11,19 @@ import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -37,88 +38,96 @@ public class OrderService implements IOrderService {
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired
-    private InventoryRepository inventoryRepository;
+    private VariantRepository variantRepository;
     @Autowired
     private CartRepository cartRepository;
+    @Autowired
+    private CurrentUserService currentUserService;
+    @Autowired
+    private CartItemRepository cartItemRepository;
+    @Autowired
+    private OrderMapperDTO orderMapperDTO;
 
     @Override
-    public Page<OrderDTO> findAll(PageRequest pageRequest) {
-        return orderRepository.findAll(pageRequest).map(item -> {
-            OrderDTO orderDTO = new OrderDTO();
-            orderDTO.setOrderId(item.getOrderId());
-            orderDTO.setPhone(item.getPhone());
-            orderDTO.setEmail(item.getEmail());
-            orderDTO.setCustomerName(item.getCustomerName());
-            orderDTO.setCreate_at(item.getCreate_at());
-            return orderDTO;
+    public Page<OrderDTO> findAll(OrderStatus status, String fullName, Long orderId, String phone, PageRequest pageRequest) {
+        return orderRepository.findAllByStatusAndIdAndFullName(status, orderId, fullName, phone, pageRequest).map(item -> {
+            return orderMapperDTO.mapOrderToOrderDTO(item);
         });
     }
 
     @Transactional
     @Override
-    public OrderDTO createOrder(OrderDTO orderDTO, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
-        Order order = new Order();
-        order.setCustomerName(orderDTO.getCustomerName());
-        order.setPhone(orderDTO.getPhone());
-        order.setEmail(orderDTO.getEmail());
-        order.setAddress(orderDTO.getAddress());
-        order.setOrderStatus(OrderStatus.PROCESSING);
-        order.setNote(orderDTO.getNote());
-        order.setPaymentMethod(orderDTO.getPaymentMethod());
-        order.setOrderDate(LocalDateTime.now());
-        Double totalMoney = orderDTO.getOrderItemDTOS().stream().map(OrderItemDTO::getTotalAmount).reduce(0.0, Double::sum);
-        order.setTotalAmount(totalMoney);
-        order.setUser(user);
-        order = orderRepository.save(order);
-        for (OrderItemDTO orderItemDTO : orderDTO.getOrderItemDTOS()) {
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setSize(orderItemDTO.getSize());
-            orderItem.setColor(orderItemDTO.getColor());
-            Product orderProduct = productRepository.findById(orderItemDTO.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm!"));
-            Inventory inventory = inventoryRepository.findByProductAndColorAndSize(orderProduct, orderItem.getColor(), orderItem.getSize())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm!"));
-            if (inventory.getQuantity() < orderItemDTO.getQuantity()) {
-                throw new RuntimeException("Số lượng tồn kho không đủ");
+    public Order createOrder(OrderDTO orderDTO) {
+        User user = userRepository.findById(currentUserService.getCurrentUser().getUserId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+        Order order = Order.builder()
+                .phone(orderDTO.getPhone())
+                .email(orderDTO.getEmail())
+                .customerName(orderDTO.getFirstName() + " " + orderDTO.getLastName())
+                .create_at(LocalDateTime.now())
+                .paymentMethod(orderDTO.getPaymentMethod())
+                .totalAmount(orderDTO.getSubtotal())
+                .address(orderDTO.getAddress())
+                .orderStatus(OrderStatus.PENDING)
+                .user(user)
+                .build();
+        orderRepository.save(order);
+
+        if (orderDTO.getOrderItemDTOS() != null) {
+            for (OrderItemDTO orderItemDTO : orderDTO.getOrderItemDTOS()) {
+                Product product = productRepository.findById(orderItemDTO.getProductId()).orElseThrow(null);
+                OrderItem orderItem = OrderItem.builder()
+                        .size(orderItemDTO.getSize())
+                        .quantity(orderItemDTO.getQuantity())
+                        .subtotal(BigDecimal.valueOf((orderDTO.getSubtotal())))
+                        .color(orderItemDTO.getColor())
+                        .order(order)
+                        .product(product)
+                        .pricePerUnit(BigDecimal.valueOf(orderItemDTO.getPrice()))
+                        .build();
+                orderItemRepository.save(orderItem);
             }
-            inventory.setQuantity(inventory.getQuantity() - orderItemDTO.getQuantity());
-            orderItem.setProduct(orderProduct);
-            orderItem.setQuantity(orderItemDTO.getQuantity());
-            orderItem.setSubtotal(orderItemDTO.getTotalAmount());
-            inventoryRepository.save(inventory);
-            orderItemRepository.save(orderItem);
+        } else {
+            Cart cart = cartRepository.findById(orderDTO.getCartId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy giỏ hàng"));
+            List<CartItem> cartItems = cartItemRepository.findByCart(cart);
+            for (CartItem cartItem : cartItems) {
+                Product product = cartItem.getProduct();
+
+                Variant variant = variantRepository.findByProductAndColorAndSize(
+                        product, cartItem.getColor(), cartItem.getSize()
+                ).orElseThrow(() -> new RuntimeException("Không tìm thấy phiên bản sản phẩm"));
+
+                if (variant.getQuantity() < cartItem.getQuantity()) {
+                    throw new RuntimeException("Số lượng tồn kho không đủ cho sản phẩm " + product.getProductName());
+                }
+
+                variant.setQuantity(variant.getQuantity() - cartItem.getQuantity());
+                variantRepository.save(variant);
+
+                OrderItem orderItem = OrderItem.builder()
+                        .order(order)
+                        .product(product)
+                        .quantity(cartItem.getQuantity())
+                        .color(cartItem.getColor())
+                        .size(cartItem.getSize())
+                        .pricePerUnit(BigDecimal.valueOf(cartItem.getPrice()))
+                        .subtotal(cartItem.getSubtotal())
+                        .build();
+                orderItemRepository.save(orderItem);
+
+            }
+            cartItemRepository.deleteByCartId(orderDTO.getCartId());
+            cartRepository.deleteById(cart.getId());
         }
-        OrderDTO responseDTO = new OrderDTO();
-        responseDTO.setOrderId(order.getOrderId());
-        responseDTO.setCustomerName(order.getCustomerName());
-        responseDTO.setCreate_at(order.getCreate_at());
-        responseDTO.setEmail(order.getEmail());
-        responseDTO.setPhone(order.getPhone());
-        List<OrderItemDTO> orderItemDTOList = orderItemRepository.findByOrder(order).stream()
-                .map(orderItem -> {
-                    OrderItemDTO orderItemDTO = new OrderItemDTO();
-                    orderItemDTO.setId(orderItem.getOrderItemId());
-                    orderItemDTO.setProductName(orderItem.getProduct().getProductName());
-                    orderItemDTO.setQuantity(orderItem.getQuantity());
-                    orderItemDTO.setProductId(orderItem.getProduct().getId());
-                    orderItemDTO.setSize(orderItem.getSize());
-                    orderItemDTO.setPrice(orderItem.getProduct().getPrice());
-                    orderItemDTO.setColor(orderItem.getColor());
-                    orderItemDTO.setTotalAmount(orderItem.getSubtotal());
-                    return orderItemDTO;
-                }).collect(Collectors.toList());
-        responseDTO.setOrderItemDTOS(orderItemDTOList);
-        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
-        user.setCart(null);
-        cartRepository.delete(cart);
-        return responseDTO;
+        return order;
     }
 
+
     @Override
-    public List<OrderDTO> findOrders(Long userId) {
-        User user = userRepository.findById(userId)
+    public List<OrderDTO> findOrders() {
+        User user = userRepository.findById(currentUserService.getCurrentUser().getUserId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         List<Order> orders = orderRepository.findAllUser(user);
         if (orders.isEmpty()) {
@@ -126,19 +135,7 @@ public class OrderService implements IOrderService {
         }
         List<OrderDTO> orderDTOList = new ArrayList<>();
         for (Order order : orders) {
-            OrderDTO dto = new OrderDTO();
-            dto.setOrderId(order.getOrderId());
-            dto.setCustomerName(order.getCustomerName());
-            dto.setEmail(order.getEmail());
-            dto.setSubtotal(order.getTotalAmount());
-            dto.setPhone(order.getPhone());
-            dto.setAddress(order.getAddress());
-            dto.setPaymentMethod(order.getPaymentMethod());
-            dto.setCreate_at(order.getOrderDate());
-            dto.setStatus(order.getOrderStatus().name());
-            dto.setNote(order.getNote());
-            // Không lấy OrderItem ở đây!
-            orderDTOList.add(dto);
+            orderDTOList.add(orderMapperDTO.mapOrderToOrderDTO(order));
         }
         return orderDTOList;
     }
@@ -151,7 +148,7 @@ public class OrderService implements IOrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
         OrderDTO dto = new OrderDTO();
         dto.setOrderId(order.getOrderId());
-        dto.setCustomerName(order.getCustomerName());
+        dto.setFullName(order.getCustomerName());
         dto.setEmail(order.getEmail());
         dto.setSubtotal(order.getTotalAmount());
         dto.setPhone(order.getPhone());
@@ -165,9 +162,8 @@ public class OrderService implements IOrderService {
         for (OrderItem item : orderItems) {
             OrderItemDTO orderItemDTO = new OrderItemDTO();
             orderItemDTO.setId(item.getOrderItemId());
-            Inventory inventory = inventoryRepository.findByProductAndColorAndSize(item.getProduct(), item.getColor(), item.getSize())
+            Variant variant = variantRepository.findByProductAndColorAndSize(item.getProduct(), item.getColor(), item.getSize())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy product"));
-            orderItemDTO.setImage_url(inventory.getImage_url());
             orderItemDTO.setProductName(item.getProduct().getProductName());
             orderItemDTO.setQuantity(item.getQuantity());
             orderItemDTO.setProductId(item.getProduct().getId());
@@ -177,13 +173,12 @@ public class OrderService implements IOrderService {
             orderItemDTO.setTotalAmount(item.getSubtotal());
             orderItemDTOList.add(orderItemDTO);
         }
-        dto.setOrderItemDTOS(orderItemDTOList);
         return dto;
     }
 
     @Override
-    public void cancelled(Long userId, Long orderId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tài khoản"));
+    public void cancelled(Long orderId) {
+        User user = userRepository.findById(currentUserService.getCurrentUser().getUserId()).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tài khoản"));
         Optional<Order> order = orderRepository.findByOrderIdAndUser(orderId, user);
         if (!order.isPresent()) throw new EntityNotFoundException("Không tìm thấy đơn hàng");
         order.get().setOrderStatus(OrderStatus.CANCELLED);
@@ -217,7 +212,7 @@ public class OrderService implements IOrderService {
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
                 document.add(new Paragraph("- " + product.getProductName() + " - Giá: " + product.getPrice(), font));
                 document.add(Chunk.NEWLINE);
-                document.add(new Paragraph("-Màu:" + item.getColor() + ",Size:"+ item.getSize() + ", Số lượng:" + item.getQuantity(), font));
+                document.add(new Paragraph("-Màu:" + item.getColor() + ",Size:" + item.getSize() + ", Số lượng:" + item.getQuantity(), font));
                 document.add(Chunk.NEWLINE);
             }
             Paragraph total = new Paragraph("Tổng tiền: " + order.getTotalAmount() + "VNĐ", fontTitle);
@@ -233,4 +228,24 @@ public class OrderService implements IOrderService {
         return new ByteArrayInputStream(out.toByteArray());
     }
 
+    @Override
+    public Map<String, Long> countOrdersByStatus() {
+        List<Order> orders = orderRepository.findAll();
+        Map<String, Long> map = orders.stream().collect(Collectors.groupingBy(o -> o.getOrderStatus().name()
+                , Collectors.counting()));
+        return map;
+    }
+
+    @Override
+    public void deleteOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(null);
+        orderRepository.delete(order);
+    }
+
+    @Override
+    public void changeStatus(Long orderId, OrderStatus orderStatus) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Not found orderid in database"));
+        order.setOrderStatus(orderStatus);
+        orderRepository.save(order);
+    }
 }

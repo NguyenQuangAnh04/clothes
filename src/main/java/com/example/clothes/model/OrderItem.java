@@ -1,13 +1,20 @@
 package com.example.clothes.model;
 
+import com.example.clothes.enums.OrderStatus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,5 +35,5 @@ public class OrderItem {
 
     private BigDecimal pricePerUnit;
 
-    private Double subtotal;
+    private BigDecimal subtotal;
 }

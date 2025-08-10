@@ -1,19 +1,25 @@
 package com.example.clothes.dto;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import org.antlr.v4.runtime.misc.NotNull;
 
 @Data
 public class UserRegisterDTO {
     private Long id;
-    private String userName;
-    private String fullName;
-    private String password;
-    private String confirmPassword;
-    private String email;
-    private String phone;
 
+    @NotBlank(message = "Họ và tên không được để trống")
+    private String fullName;
+
+    @NotBlank(message = "Mật khẩu không được để trống")
+    private String password;
+
+    @NotBlank(message = "Xác nhận mật khẩu không được để trống")
+    private String confirmPassword;
+
+    @Email(message = "Email không đúng định dạng")
+    private String email;
+
+    @NotBlank(message = "Số điện thoại không được để trống")
+    private String phone;
 }

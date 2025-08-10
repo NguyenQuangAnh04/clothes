@@ -7,9 +7,12 @@ import com.example.clothes.model.Cart;
 import java.util.List;
 
 public interface ICartService {
-    CartDTO createCart(CartDTO cartDTO, Long userId);
+    CartDTO createCart(CartDTO cartDTO);
     CartItemDTO updateQuantity(CartItemDTO cartItemDTO);
 
-    CartDTO findByUser(Long userId);
+    CartDTO findByUser();
     void deleteCartItem(Long id);
+
+    void increasedQuantity(Long id);
+    void decreasedQuantity(Long id);
 }

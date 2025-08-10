@@ -1,5 +1,6 @@
 package com.example.clothes.controller;
 
+import com.example.clothes.component.JwtUtils;
 import com.example.clothes.dto.ChangePasswordDTO;
 import com.example.clothes.dto.UserLoginDTO;
 import com.example.clothes.dto.UserRegisterDTO;
@@ -9,15 +10,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api")
 public class UserController {
     @Autowired
     private UserService userService;
-
+    @Autowired
+    private JwtUtils jwtUtils;
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody() UserLoginDTO dto) {
-        return ResponseEntity.ok(userService.login(dto.getUserName(), dto.getPassword()));
+        return ResponseEntity.ok(userService.login(dto.getPhone(), dto.getPassword()));
     }
 
     @PostMapping("/register/verify")
@@ -41,9 +45,22 @@ public class UserController {
         return ResponseEntity.ok("Đã gửi OTP đến email của bạn.");
     }
 
-    @PostMapping("/forgot-password/reset")
-    public ResponseEntity<?> resetPassword(@RequestBody() ChangePasswordDTO changePasswordDTO) {
-        userService.resetPassword(changePasswordDTO.getEmail(), changePasswordDTO);
-        return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+//    @PostMapping("/forgot-password/reset")
+//    public ResponseEntity<?> resetPassword(@RequestBody() ChangePasswordDTO changePasswordDTO) {
+//        userService.resetPassword(changePasswordDTO.getEmail(), changePasswordDTO);
+//        return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+//    }
+
+    @GetMapping("/role")
+    public ResponseEntity<?> getRole(@RequestHeader("Authorization") String token) {
+        if(token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        String role = jwtUtils.getRoleFromToken(token);
+        if(role.equals("ADMIN")){
+            return ResponseEntity.ok(Map.of("role", "admin"));
+        }else{
+            return ResponseEntity.status(403).body(Map.of("message", "Forbidden"));
+        }
     }
 }

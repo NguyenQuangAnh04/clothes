@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class CartDTO {
     private Long id;
-    private Long userId;
-    private List<CartItemDTO> cartItemDTOList;
+    private List<CartItemDTO> carts;
+    private BigDecimal totalMoney;
+
 }

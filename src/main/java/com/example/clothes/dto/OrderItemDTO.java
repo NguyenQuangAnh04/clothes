@@ -13,7 +13,7 @@ public class OrderItemDTO {
     private Integer quantity;
     private String note;
     private LocalDateTime create_at;
-    private Double totalAmount;
+    private BigDecimal totalAmount;
     private Double price;
     private String size;
     private String color;

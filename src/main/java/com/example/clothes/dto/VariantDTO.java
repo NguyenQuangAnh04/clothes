@@ -1,23 +1,22 @@
 package com.example.clothes.dto;
 
+import com.example.clothes.model.VariantImage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CartItemDTO {
+public class VariantDTO {
     private Long id;
-    private Long productId;
-    private String productName;
-    private Integer quantity;
-    private Double price;
-    private String image_url;
-    private String size;
     private String color;
-    private Integer maxQuantity;
+    private String size;
+    private Integer quantity;
+    private List<VariantImageDTO> images;
 }

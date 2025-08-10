@@ -12,7 +12,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRunTimeException(RuntimeException ex){
         Map<String, String> map = new HashMap<>();
-        map.put("error", ex.getMessage());
+        map.put("message", ex.getMessage());
         return ResponseEntity.status(
                 HttpStatus.BAD_REQUEST
         ).body(map);

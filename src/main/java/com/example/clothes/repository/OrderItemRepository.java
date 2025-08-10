@@ -3,6 +3,7 @@ package com.example.clothes.repository;
 import com.example.clothes.model.Order;
 import com.example.clothes.model.OrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
